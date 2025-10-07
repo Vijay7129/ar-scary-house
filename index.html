@@ -38,9 +38,10 @@
       gap:12px;
       z-index:100;
       align-items:center;
+      max-width:90%;
     }
     
-    .btn-row {display:flex;gap:12px;}
+    .btn-row {display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
     
     button {
       padding:14px 24px;
@@ -63,7 +64,8 @@
     .ar-button {
       background:linear-gradient(135deg,#00ff00,#00cc00)!important;
       box-shadow:0 4px 16px rgba(0,255,0,0.5)!important;
-      font-size:1.1em;
+      font-size:1.2em;
+      padding:18px 32px;
       animation:pulse 2s infinite;
     }
     
@@ -104,9 +106,19 @@
     
     .instructions h2 {margin:0 0 16px;color:#ff0000;}
     
-    .instructions ol {margin:12px 0;padding-left:24px;line-height:1.8;}
+    .instructions ol {margin:12px 0;padding-left:24px;line-height:1.8;text-align:left;}
     
     .instructions button {width:100%;margin-top:16px;}
+    
+    .warning-box {
+      background:rgba(255,0,0,0.1);
+      border:1px solid rgba(255,0,0,0.3);
+      padding:12px;
+      border-radius:8px;
+      margin-top:12px;
+      font-size:0.85em;
+      line-height:1.4;
+    }
     
     @keyframes shake {
       0%, 100% {transform:translate(-50%, -50%) rotate(0deg);}
@@ -115,6 +127,15 @@
     }
     
     .shake {animation:shake 0.3s ease-in-out 3;}
+
+    .loading {
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%, -50%);
+      font-size:1.2em;
+      z-index:5;
+    }
   </style>
 </head>
 <body>
@@ -124,46 +145,59 @@
       <div class="subtitle">Tap "View in AR" to place the haunted house in your space</div>
     </div>
 
-    <!-- Model Viewer with AR support -->
+    <!-- Model Viewer with AR support - Using a public haunted house model -->
     <model-viewer
       id="viewer"
-      src="scary-house.glb"
+      src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/Models/HauntedHouse/glTF-Binary/HauntedHouse.glb"
       alt="Scary haunted house 3D model"
       ar
       ar-modes="webxr scene-viewer quick-look"
       camera-controls
       touch-action="pan-y"
-      shadow-intensity="1"
-      exposure="1"
-      environment-image="neutral"
+      shadow-intensity="1.5"
+      exposure="0.8"
+      shadow-softness="0.5"
       auto-rotate
-      auto-rotate-delay="1000"
-      rotation-per-second="30deg"
+      auto-rotate-delay="2000"
+      rotation-per-second="20deg"
+      camera-orbit="0deg 75deg 8m"
+      min-camera-orbit="auto auto 3m"
+      max-camera-orbit="auto auto 15m"
+      loading="eager"
     >
       <!-- AR Button (automatically appears on supported devices) -->
       <button slot="ar-button" class="ar-button" id="arButton">
         👻 View in AR
       </button>
+      
+      <div class="loading" slot="poster">Loading haunted house... 🏚️</div>
     </model-viewer>
 
     <div class="controls">
-      <div id="status" class="status">Audio: Off</div>
+      <div id="status" class="status">Audio: Off | Rotate to explore</div>
       <div class="btn-row">
         <button id="audioBtn" class="secondary">🔊 Enable Audio</button>
         <button id="scareBtn" class="secondary">😱 Jumpscare</button>
+        <button id="helpBtn" class="secondary">❓ Help</button>
       </div>
     </div>
 
     <div class="instructions" id="instructions">
-      <h2>📱 First Time Setup</h2>
+      <h2>📱 How to Use AR</h2>
       <ol>
-        <li><strong>Enable Audio</strong> - Tap the audio button below</li>
-        <li><strong>Grant Permissions</strong> - Allow camera access when prompted</li>
-        <li><strong>Tap "View in AR"</strong> - The green button</li>
-        <li><strong>Point at Floor</strong> - Move phone to scan surface</li>
-        <li><strong>Tap to Place</strong> - Position the house</li>
-        <li><strong>Walk Around</strong> - Get close and explore!</li>
+        <li><strong>Enable Audio First</strong> - Tap the 🔊 button</li>
+        <li><strong>Tap "View in AR"</strong> - The big green button</li>
+        <li><strong>Grant Camera Permission</strong> - When browser asks</li>
+        <li><strong>Point at Floor/Ground</strong> - Move phone slowly to scan</li>
+        <li><strong>Tap Screen to Place</strong> - Position the scary house</li>
+        <li><strong>Walk Around It</strong> - Get close and explore!</li>
       </ol>
+      <div class="warning-box">
+        ⚠️ <strong>AR Requirements:</strong><br>
+        • iOS 12+ with Safari, or<br>
+        • Android 8+ with Chrome<br>
+        • Good lighting helps AR tracking
+      </div>
       <button onclick="document.getElementById('instructions').classList.remove('show')">
         Got It! 👍
       </button>
@@ -178,35 +212,64 @@
     const viewer = document.getElementById('viewer');
     const audioBtn = document.getElementById('audioBtn');
     const scareBtn = document.getElementById('scareBtn');
+    const helpBtn = document.getElementById('helpBtn');
     const status = document.getElementById('status');
     const instructions = document.getElementById('instructions');
     const amb = document.getElementById('amb');
     const scream = document.getElementById('scream');
 
     let audioEnabled = false;
-    let isFirstVisit = !localStorage.getItem('visited');
+    let modelLoaded = false;
 
     // Show instructions on first visit
+    let isFirstVisit = true;
+    try {
+      isFirstVisit = !localStorage.getItem('visited');
+    } catch(e) {
+      // LocalStorage not available, assume first visit
+    }
+
     if (isFirstVisit) {
       setTimeout(() => {
         instructions.classList.add('show');
-        localStorage.setItem('visited', 'true');
-      }, 1000);
+        try {
+          localStorage.setItem('visited', 'true');
+        } catch(e) {}
+      }, 1500);
     }
+
+    // Model loading status
+    viewer.addEventListener('load', () => {
+      modelLoaded = true;
+      status.textContent = 'Model Loaded! Tap AR button ↓';
+      status.style.borderColor = '#00ff00';
+      console.log('3D model loaded successfully');
+    });
+
+    viewer.addEventListener('error', (event) => {
+      console.error('Model loading error:', event);
+      status.textContent = 'Error loading model';
+      status.style.borderColor = '#ff0000';
+    });
 
     // Enable audio
     audioBtn.addEventListener('click', async () => {
       try {
+        amb.volume = 0.6;
         await amb.play();
         audioEnabled = true;
         audioBtn.textContent = '✓ Audio On';
         audioBtn.style.background = 'linear-gradient(135deg,#00cc00,#008800)';
-        status.textContent = 'Audio: On';
-        status.classList.add('active');
+        updateStatus();
       } catch(e) {
         console.warn('Audio blocked:', e);
         audioBtn.textContent = '⚠️ Tap Again';
       }
+    });
+
+    // Help button
+    helpBtn.addEventListener('click', () => {
+      instructions.classList.add('show');
     });
 
     // Jumpscare button
@@ -216,20 +279,38 @@
 
     function triggerJumpscare() {
       scream.currentTime = 0;
+      scream.volume = 0.8;
       scream.play();
       document.body.style.background = '#ff0000';
-      instructions.classList.add('shake');
+      if (instructions.classList.contains('show')) {
+        instructions.classList.add('shake');
+      }
       setTimeout(() => {
         document.body.style.background = '#000';
         instructions.classList.remove('shake');
       }, 300);
     }
 
+    function updateStatus() {
+      let statusText = '';
+      if (audioEnabled) {
+        statusText = 'Audio: On';
+      } else {
+        statusText = 'Audio: Off';
+      }
+      
+      if (modelLoaded) {
+        statusText += ' | Tap AR button below ↓';
+      }
+      
+      status.textContent = statusText;
+    }
+
     // Random ambient jumpscares
     let lastScare = 0;
     setInterval(() => {
       const now = Date.now();
-      if (audioEnabled && now - lastScare > 15000 && Math.random() < 0.1) {
+      if (audioEnabled && now - lastScare > 20000 && Math.random() < 0.08) {
         lastScare = now;
         triggerJumpscare();
       }
@@ -237,11 +318,14 @@
 
     // AR session tracking
     viewer.addEventListener('ar-status', (event) => {
+      console.log('AR Status:', event.detail.status);
       if (event.detail.status === 'session-started') {
-        status.textContent = '👻 AR Active!';
+        status.textContent = '👻 AR Active! Place the house';
         status.style.borderColor = '#00ff00';
+        status.classList.add('active');
       } else if (event.detail.status === 'not-presenting') {
-        status.textContent = 'Audio: ' + (audioEnabled ? 'On' : 'Off');
+        updateStatus();
+        status.classList.remove('active');
       }
     });
 
@@ -249,11 +333,22 @@
     let touchCount = 0;
     viewer.addEventListener('touchstart', () => {
       touchCount++;
-      if (touchCount > 5 && Math.random() < 0.15) {
+      if (touchCount > 8 && audioEnabled && Math.random() < 0.2) {
         triggerJumpscare();
         touchCount = 0;
       }
     });
+
+    // Check AR support
+    if (viewer.canActivateAR) {
+      console.log('AR is supported on this device!');
+    } else {
+      console.warn('AR may not be supported on this device');
+      setTimeout(() => {
+        status.textContent = 'AR may not work on this device';
+        status.style.borderColor = '#ff9900';
+      }, 3000);
+    }
   </script>
 </body>
 </html>
