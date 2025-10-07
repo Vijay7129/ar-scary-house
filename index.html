@@ -4,102 +4,256 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
   <title>AR Scary House</title>
+  
+  <!-- Model Viewer - Google's AR/3D viewer -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  
   <style>
-    body,html{height:100%;margin:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-    .container {text-align:center;padding:24px;max-width:500px;}
-    h1 {font-size:2.5em;margin:0 0 12px;background:linear-gradient(135deg,#ff0000,#ff6600);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .subtitle {font-size:1.1em;opacity:0.85;margin-bottom:32px;line-height:1.5;}
-    .btn-group {display:flex;flex-direction:column;gap:16px;margin-bottom:32px;}
-    button, a.button {padding:16px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#ff0000,#cc0000);color:#fff;font-weight:700;font-size:1.1em;box-shadow:0 6px 20px rgba(255,0,0,0.4);cursor:pointer;transition:all 0.3s;text-decoration:none;display:block;}
-    button:hover, a.button:hover {transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,0,0,0.6);}
-    .secondary {background:linear-gradient(135deg,#333,#111)!important;box-shadow:0 6px 20px rgba(0,0,0,0.4)!important;}
-    .secondary:hover {box-shadow:0 8px 24px rgba(0,0,0,0.6)!important;}
-    .instructions {background:rgba(255,255,255,0.05);padding:16px;border-radius:8px;font-size:0.9em;line-height:1.6;margin-top:24px;border-left:3px solid #ff0000;}
-    .instructions ol {text-align:left;margin:8px 0 0 0;padding-left:24px;}
-    .instructions li {margin:8px 0;}
-    .warning {background:rgba(255,0,0,0.1);padding:12px;border-radius:6px;margin-top:16px;font-size:0.85em;border:1px solid rgba(255,0,0,0.3);}
-    #audioControl {display:none;margin-top:24px;}
-    .audio-playing {color:#00ff00;font-weight:600;}
+    body,html{height:100%;margin:0;background:#000;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;overflow:hidden;}
+    
+    .container {height:100%;display:flex;flex-direction:column;}
+    
+    .header {padding:16px;text-align:center;background:linear-gradient(180deg, rgba(20,0,0,0.95), rgba(0,0,0,0.85));box-shadow:0 2px 12px rgba(255,0,0,0.3);z-index:10;}
+    
+    h1 {margin:0 0 8px;font-size:1.8em;background:linear-gradient(135deg,#ff0000,#ff6600);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    
+    .subtitle {font-size:0.9em;opacity:0.85;margin:0;}
+    
+    model-viewer {
+      width:100%;
+      height:100%;
+      flex:1;
+      background-color:#000;
+      --poster-color:#000;
+      --progress-bar-color:#ff0000;
+    }
+    
+    .controls {
+      position:fixed;
+      bottom:20px;
+      left:50%;
+      transform:translateX(-50%);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      z-index:100;
+      align-items:center;
+    }
+    
+    .btn-row {display:flex;gap:12px;}
+    
+    button {
+      padding:14px 24px;
+      border-radius:10px;
+      border:0;
+      background:linear-gradient(135deg,#ff0000,#cc0000);
+      color:#fff;
+      font-weight:700;
+      font-size:1em;
+      box-shadow:0 4px 16px rgba(255,0,0,0.5);
+      cursor:pointer;
+      transition:all 0.3s;
+      white-space:nowrap;
+    }
+    
+    button:active {transform:scale(0.95);}
+    
+    .secondary {background:linear-gradient(135deg,#333,#111)!important;box-shadow:0 4px 16px rgba(0,0,0,0.6)!important;}
+    
+    .ar-button {
+      background:linear-gradient(135deg,#00ff00,#00cc00)!important;
+      box-shadow:0 4px 16px rgba(0,255,0,0.5)!important;
+      font-size:1.1em;
+      animation:pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {box-shadow:0 4px 16px rgba(0,255,0,0.5);}
+      50% {box-shadow:0 4px 24px rgba(0,255,0,0.8);}
+    }
+    
+    .status {
+      background:rgba(0,0,0,0.8);
+      padding:8px 16px;
+      border-radius:20px;
+      font-size:0.85em;
+      border:1px solid rgba(255,255,255,0.2);
+    }
+    
+    .status.active {
+      border-color:#00ff00;
+      color:#00ff00;
+    }
+    
+    .instructions {
+      position:fixed;
+      top:50%;
+      left:50%;
+      transform:translate(-50%, -50%);
+      background:rgba(0,0,0,0.95);
+      padding:24px;
+      border-radius:12px;
+      border:2px solid #ff0000;
+      max-width:90%;
+      width:400px;
+      z-index:200;
+      display:none;
+    }
+    
+    .instructions.show {display:block;}
+    
+    .instructions h2 {margin:0 0 16px;color:#ff0000;}
+    
+    .instructions ol {margin:12px 0;padding-left:24px;line-height:1.8;}
+    
+    .instructions button {width:100%;margin-top:16px;}
+    
+    @keyframes shake {
+      0%, 100% {transform:translate(-50%, -50%) rotate(0deg);}
+      25% {transform:translate(-50%, -50%) rotate(-5deg);}
+      75% {transform:translate(-50%, -50%) rotate(5deg);}
+    }
+    
+    .shake {animation:shake 0.3s ease-in-out 3;}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🏚️ AR Scary House</h1>
-    <div class="subtitle">Experience horror in your real world with AR technology</div>
-    
-    <div class="btn-group">
-      <a href="https://app.vectary.com/p/17pWaesFZN38b8iqw7SEJA" target="_blank" class="button" id="openAR">
-        🎃 Launch AR Experience
-      </a>
-      <button class="button secondary" id="enableAudio">🔊 Enable Scary Audio</button>
-      <button class="button secondary" id="jumpscare">😱 Trigger Jumpscare</button>
+    <div class="header">
+      <h1>🏚️ AR Scary House</h1>
+      <div class="subtitle">Tap "View in AR" to place the haunted house in your space</div>
     </div>
 
-    <div id="audioControl">
-      <div class="audio-playing">✓ Audio Enabled - Volume Up!</div>
+    <!-- Model Viewer with AR support -->
+    <model-viewer
+      id="viewer"
+      src="scary-house.glb"
+      alt="Scary haunted house 3D model"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      touch-action="pan-y"
+      shadow-intensity="1"
+      exposure="1"
+      environment-image="neutral"
+      auto-rotate
+      auto-rotate-delay="1000"
+      rotation-per-second="30deg"
+    >
+      <!-- AR Button (automatically appears on supported devices) -->
+      <button slot="ar-button" class="ar-button" id="arButton">
+        👻 View in AR
+      </button>
+    </model-viewer>
+
+    <div class="controls">
+      <div id="status" class="status">Audio: Off</div>
+      <div class="btn-row">
+        <button id="audioBtn" class="secondary">🔊 Enable Audio</button>
+        <button id="scareBtn" class="secondary">😱 Jumpscare</button>
+      </div>
     </div>
 
-    <div class="instructions">
-      <strong>📱 How to Use:</strong>
+    <div class="instructions" id="instructions">
+      <h2>📱 First Time Setup</h2>
       <ol>
-        <li><strong>Enable Audio</strong> first (tap the button above)</li>
-        <li><strong>Launch AR Experience</strong> - opens in new tab</li>
-        <li>In Vectary viewer, tap the <strong>AR icon</strong> (cube with camera)</li>
-        <li>Point your phone camera at the ground</li>
-        <li>Tap to place the scary house in your space</li>
-        <li>Walk around and explore! 👻</li>
+        <li><strong>Enable Audio</strong> - Tap the audio button below</li>
+        <li><strong>Grant Permissions</strong> - Allow camera access when prompted</li>
+        <li><strong>Tap "View in AR"</strong> - The green button</li>
+        <li><strong>Point at Floor</strong> - Move phone to scan surface</li>
+        <li><strong>Tap to Place</strong> - Position the house</li>
+        <li><strong>Walk Around</strong> - Get close and explore!</li>
       </ol>
-    </div>
-
-    <div class="warning">
-      ⚠️ <strong>Warning:</strong> This experience contains jump scares and scary audio. Not recommended for young children or those with heart conditions.
+      <button onclick="document.getElementById('instructions').classList.remove('show')">
+        Got It! 👍
+      </button>
     </div>
   </div>
 
+  <!-- Audio files -->
   <audio id="amb" loop src="haunted-house-ambience-337104.mp3"></audio>
   <audio id="scream" src="794212__aksiny_soundeditor__monster-scream-2.wav"></audio>
 
   <script>
-    const enableBtn = document.getElementById('enableAudio');
-    const jumpBtn = document.getElementById('jumpscare');
+    const viewer = document.getElementById('viewer');
+    const audioBtn = document.getElementById('audioBtn');
+    const scareBtn = document.getElementById('scareBtn');
+    const status = document.getElementById('status');
+    const instructions = document.getElementById('instructions');
     const amb = document.getElementById('amb');
     const scream = document.getElementById('scream');
-    const audioControl = document.getElementById('audioControl');
 
-    enableBtn.addEventListener('click', async () => {
+    let audioEnabled = false;
+    let isFirstVisit = !localStorage.getItem('visited');
+
+    // Show instructions on first visit
+    if (isFirstVisit) {
+      setTimeout(() => {
+        instructions.classList.add('show');
+        localStorage.setItem('visited', 'true');
+      }, 1000);
+    }
+
+    // Enable audio
+    audioBtn.addEventListener('click', async () => {
       try {
         await amb.play();
-        enableBtn.textContent = '✓ Audio Playing';
-        enableBtn.style.background = 'linear-gradient(135deg,#00cc00,#008800)';
-        audioControl.style.display = 'block';
+        audioEnabled = true;
+        audioBtn.textContent = '✓ Audio On';
+        audioBtn.style.background = 'linear-gradient(135deg,#00cc00,#008800)';
+        status.textContent = 'Audio: On';
+        status.classList.add('active');
       } catch(e) {
-        console.warn('Autoplay blocked:', e);
-        enableBtn.textContent = '⚠️ Tap Again to Enable';
+        console.warn('Audio blocked:', e);
+        audioBtn.textContent = '⚠️ Tap Again';
       }
     });
 
-    jumpBtn.addEventListener('click', () => {
+    // Jumpscare button
+    scareBtn.addEventListener('click', () => {
+      triggerJumpscare();
+    });
+
+    function triggerJumpscare() {
       scream.currentTime = 0;
       scream.play();
-      document.body.style.animation = 'shake 0.5s';
-      setTimeout(() => document.body.style.animation = '', 500);
-    });
+      document.body.style.background = '#ff0000';
+      instructions.classList.add('shake');
+      setTimeout(() => {
+        document.body.style.background = '#000';
+        instructions.classList.remove('shake');
+      }, 300);
+    }
 
-    // Random ambient scares
+    // Random ambient jumpscares
     let lastScare = 0;
-    document.addEventListener('touchstart', () => {
+    setInterval(() => {
       const now = Date.now();
-      if (now - lastScare > 3000 && Math.random() < 0.05) {
+      if (audioEnabled && now - lastScare > 15000 && Math.random() < 0.1) {
         lastScare = now;
-        scream.currentTime = 0;
-        scream.play();
+        triggerJumpscare();
+      }
+    }, 5000);
+
+    // AR session tracking
+    viewer.addEventListener('ar-status', (event) => {
+      if (event.detail.status === 'session-started') {
+        status.textContent = '👻 AR Active!';
+        status.style.borderColor = '#00ff00';
+      } else if (event.detail.status === 'not-presenting') {
+        status.textContent = 'Audio: ' + (audioEnabled ? 'On' : 'Off');
       }
     });
 
-    // Shake animation
-    const style = document.createElement('style');
-    style.textContent = '@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}';
-    document.head.appendChild(style);
+    // Touch interaction for immersion
+    let touchCount = 0;
+    viewer.addEventListener('touchstart', () => {
+      touchCount++;
+      if (touchCount > 5 && Math.random() < 0.15) {
+        triggerJumpscare();
+        touchCount = 0;
+      }
+    });
   </script>
 </body>
 </html>
