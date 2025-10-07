@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+  <title>AR Scary House — Open on Phone</title>
+  <style>
+    body,html{height:100%;margin:0;background:#000;color:#fff;display:flex;flex-direction:column;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+    .top {padding:12px;text-align:center;background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.9));box-shadow:0 2px 8px rgba(0,0,0,0.6);}
+    .viewer {flex:1;display:flex;align-items:center;justify-content:center;}
+    iframe {width:100%;height:100%;border:0;background:#000;}
+    .controls {position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:20;}
+    button {padding:10px 14px;border-radius:8px;border:0;background:#222;color:#fff;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,0.6);}
+    .note {font-size:13px;opacity:0.9;margin-top:6px;}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h2 style="margin:0 0 6px 0">AR Scary House — Open on your phone</h2>
+    <div class="note">Tap "Open AR" and then in the Vectary viewer press the AR icon to place the house in your world. If audio doesn't start, tap once anywhere to enable sound.</div>
+  </div>
+
+  <div class="viewer" id="viewer">
+    <!-- Using the Vectary project link you provided -->
+    <iframe id="vectaryFrame" src="https://app.vectary.com/p/17pWaesFZN38b8iqw7SEJA" allow="xr-spatial-tracking; camera; microphone; autoplay"></iframe>
+  </div>
+
+  <div class="controls">
+    <button id="open">Open AR (Enable audio)</button>
+    <button id="tap">Tap: Jumpscare</button>
+  </div>
+
+  <!-- Included audio files (packaged in this repo) -->
+  <audio id="amb" loop src="haunted-house-ambience-337104.mp3"></audio>
+  <audio id="scream" src="794212__aksiny_soundeditor__monster-scream-2.wav"></audio>
+
+  <script>
+    const openBtn = document.getElementById('open');
+    const tapBtn = document.getElementById('tap');
+    const amb = document.getElementById('amb');
+    const scream = document.getElementById('scream');
+
+    openBtn.addEventListener('click', async () => {
+      try { await amb.play(); openBtn.textContent = 'AR + Audio Enabled'; }
+      catch(e) { console.warn('Autoplay blocked until user interacts.'); openBtn.textContent = 'Audio blocked - Tap again'; }
+      // Scroll iframe into view on mobile
+      document.getElementById('vectaryFrame').scrollIntoView({behavior:'smooth'});
+    });
+
+    tapBtn.addEventListener('click', () => {
+      scream.currentTime = 0;
+      scream.play();
+      // Optional: send a message to iframe (if your Vectary scene listens to postMessage for custom triggers)
+      // document.getElementById('vectaryFrame').contentWindow.postMessage({type:'jump_scare'}, '*');
+    });
+
+    // light random ambient jump-scare trigger on touch (optional)
+    let lastTouch = 0;
+    document.addEventListener('touchstart', (e) => {
+      const now = Date.now();
+      if (now - lastTouch < 200) return;
+      lastTouch = now;
+      if (Math.random() < 0.03) {
+        scream.currentTime = 0;
+        scream.play();
+      }
+    });
+  </script>
+</body>
+</html>
